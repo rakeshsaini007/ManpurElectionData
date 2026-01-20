@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "AIzaSyAZzNEvE-UBaXaArXU-Q8j3coYEFmwGHD0" });
+const ai = new GoogleGenAI({ apiKey: "AIzaSyDo0hVOtClkyq_DT9VIxOsp-I5jE_l1ahM" });
 
 export const extractAadhaarData = async (base64Image: string) => {
   try {

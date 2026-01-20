@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Voter, DeleteReason } from './types';
 import { fetchAllVoters, saveVoter, deleteVoter } from './services/gasService';
@@ -8,6 +7,7 @@ const App: React.FC = () => {
   const [voters, setVoters] = useState<Voter[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
   
   // Filters
   const [selectedBooth, setSelectedBooth] = useState('');
@@ -41,12 +41,18 @@ const App: React.FC = () => {
       const matchBooth = !selectedBooth || v.boothNo === selectedBooth;
       const matchWard = !selectedWard || v.wardNo === selectedWard;
       const matchHouse = !selectedHouse || v.houseNo === selectedHouse;
-      const matchSearch = !search || 
-        v.name.toLowerCase().includes(search.toLowerCase()) || 
-        v.relativeName.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = !activeSearch || 
+        v.name.toLowerCase().includes(activeSearch.toLowerCase()) || 
+        v.relativeName.toLowerCase().includes(activeSearch.toLowerCase()) ||
+        v.svn.toLowerCase().includes(activeSearch.toLowerCase());
       return matchBooth && matchWard && matchHouse && matchSearch;
     });
-  }, [voters, selectedBooth, selectedWard, selectedHouse, search]);
+  }, [voters, selectedBooth, selectedWard, selectedHouse, activeSearch]);
+
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setActiveSearch(search);
+  };
 
   const handleSave = async (voter: Voter) => {
     const res = await saveVoter(voter);
@@ -68,48 +74,44 @@ const App: React.FC = () => {
     }
   };
 
-  const addNewMember = () => {
-    if (!selectedBooth || !selectedWard || !selectedHouse) {
-      alert('Please select Booth, Ward and House first.');
-      return;
-    }
-    const newVoter: Voter = {
-      boothNo: selectedBooth,
-      wardNo: selectedWard,
-      houseNo: selectedHouse,
-      voterNo: (Math.max(...voters.map(v => parseInt(v.voterNo) || 0)) + 1).toString(),
-      svn: '',
-      name: '',
-      relativeName: '',
-      gender: 'म',
-      age: '',
-      aadhaar: '',
-      dob: '',
-      calculatedAge: '',
-      photo: '',
-      isNew: true
-    };
-    setVoters([newVoter, ...voters]);
-  };
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Header */}
-      <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight">Voter <span className="text-indigo-600">Sync</span></h1>
           <p className="text-slate-500 font-medium">Digital Census & Data Management</p>
         </div>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search by name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 border rounded-full w-full md:w-64 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-          />
-          <i className="fa-solid fa-magnifying-glass absolute left-4 top-3 text-slate-400"></i>
-        </div>
+        
+        <form onSubmit={handleSearch} className="flex-1 max-w-md w-full">
+          <div className="relative flex items-center group">
+            <div className="absolute left-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+              <i className="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <input
+              type="text"
+              placeholder="Search by name or SVN..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-24 py-3 border-2 border-slate-100 rounded-2xl bg-white shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50/50 outline-none transition-all"
+            />
+            <button
+              type="submit"
+              className="absolute right-2 px-4 py-1.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 shadow-sm active:scale-95 transition-all"
+            >
+              Search
+            </button>
+          </div>
+          {activeSearch && (
+            <button 
+              type="button"
+              onClick={() => { setSearch(''); setActiveSearch(''); }}
+              className="text-xs text-indigo-600 mt-2 ml-2 font-semibold hover:underline"
+            >
+              Clear Search
+            </button>
+          )}
+        </form>
       </header>
 
       {/* Filters Bar */}
@@ -156,14 +158,9 @@ const App: React.FC = () => {
       {/* Results */}
       <main>
         <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold text-slate-700">Members ({filteredVoters.length})</h3>
-          <button
-            onClick={addNewMember}
-            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-2"
-          >
-            <i className="fa-solid fa-plus"></i>
-            Add New Member
-          </button>
+          <h3 className="font-bold text-slate-700">
+            {activeSearch ? `Search Results for "${activeSearch}"` : 'Members'} ({filteredVoters.length})
+          </h3>
         </div>
 
         {loading ? (
@@ -174,7 +171,7 @@ const App: React.FC = () => {
         ) : filteredVoters.length > 0 ? (
           filteredVoters.map((voter, idx) => (
             <VoterCard 
-              key={voter.svn || `new-${idx}`} 
+              key={voter.svn || `record-${idx}`} 
               voter={voter} 
               onSave={handleSave} 
               onDelete={handleDelete}
@@ -184,6 +181,14 @@ const App: React.FC = () => {
         ) : (
           <div className="text-center py-20 bg-slate-100 rounded-3xl border-2 border-dashed border-slate-200">
             <p className="text-slate-400 font-medium">No members found for this criteria.</p>
+            {activeSearch && (
+              <button 
+                onClick={() => { setSearch(''); setActiveSearch(''); }}
+                className="mt-4 text-indigo-600 font-bold hover:underline"
+              >
+                Reset Search
+              </button>
+            )}
           </div>
         )}
       </main>
