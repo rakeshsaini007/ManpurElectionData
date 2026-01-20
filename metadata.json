@@ -1,0 +1,7 @@
+{
+  "name": "Voter Data Sync Pro",
+  "description": "A comprehensive voter data management application with real-time Google Sheets sync, Aadhaar OCR integration, and automated age calculation as of Jan 2026.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
